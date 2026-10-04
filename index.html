@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedSimplify</title>
+    <!-- External Libraries for OCR & PDF Parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2e7d32;
+            --primary-light: #e8f5e9;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #2c3e50;
+            --subtext: #666666;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            min-height: 100vh;
+            background: var(--card-bg);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+            padding-bottom: 70px;
+            box-sizing: border-box;
+        }
+
+        .screen { display: none; padding: 20px; }
+        .screen.active { display: block; }
+
+        .header { text-align: center; padding: 20px 0; }
+        .logo-title { font-size: 24px; font-weight: bold; color: var(--primary); margin-top: 5px; }
+
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; color: var(--text); }
+        .input-group input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 14px; }
+
+        .btn-primary {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .lang-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .lang-card {
+            border: 1.5px solid #e0e0e0;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .lang-card.selected {
+            border-color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .hero-card {
+            background-color: var(--primary-light);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .file-input { display: none; }
+
+        .progress-bar {
+            width: 100%;
+            background-color: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--primary);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .result-card {
+            background: #f9f9f9;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .score-box {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-top: 15px;
+            border: 1px solid #eee;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            color: white;
+            margin-top: 8px;
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 450px;
+            height: 60px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .nav-item { cursor: pointer; text-align: center; font-size: 12px; color: var(--subtext); }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<!-- Intro Video Screen (First Screen) -->
+<div id="screen-intro" class="screen active">
+    <div class="video-container">
+        <video id="introVideo" autoplay muted playsinline controls>
+            <source src="intro.mp4.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <button id="btnSkipIntro" onclick="skipIntro()">Skip Intro ⏭️</button>
+    </div>
+</div>
+
+<div class="app-container">
+    <!-- 0. Login Screen -->
+    <div id="screen-login" class="screen active">
+        <div class="header">
+            <div style="font-size: 50px;">🩺</div>
+            <div class="logo-title">MedSimplify</div>
+            <p style="color: var(--subtext);">Login to analyze your health reports</p>
+        </div>
+        <form onsubmit="handleLogin(event)" style="margin-top: 20px;">
+            <div class="input-group">
+                <label>Username / Email</label>
+                <input type="text" id="loginUser" placeholder="Enter any User ID" required>
+            </div>
+            <div class="input-group">
+                <label>Password</label>
+                <input type="password" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn-primary">Login &rarr;</button>
+        </form>
+    </div>
+
+    <!-- 1. Welcome Screen -->
+    <div id="screen-welcome" class="screen">
+        <div class="header">
+            <div style="font-size: 50px;">🩺</div>
+            <div class="logo-title">MedSimplify</div>
+            <p id="t-welcome-sub" style="color: var(--subtext);"></p>
+        </div>
+        <div style="margin-top: 20px; background: var(--primary-light); padding: 30px 20px; border-radius: 20px; text-align: center;">
+            <h2 id="t-welcome-main" style="color: var(--primary); font-size: 22px;"></h2>
+            <p id="t-welcome-desc" style="color: var(--subtext); font-size: 14px; line-height: 1.5;"></p>
+            <button class="btn-primary" onclick="showScreen('screen-lang')">
+                <span id="t-btn-start">Start</span> &rarr;
+            </button>
+        </div>
+    </div>
+
+    <!-- 2. Language Selection Screen -->
+    <div id="screen-lang" class="screen">
+        <h2 id="t-lang-title">Choose your language</h2>
+        <p id="t-lang-desc" style="color: var(--subtext); font-size: 14px;"></p>
+        
+        <div class="lang-grid" id="lang-grid"></div>
+
+        <button class="btn-primary" onclick="showScreen('screen-home')" style="margin-top: 30px;">
+            <span id="t-btn-continue">Continue</span>
+        </button>
+    </div>
+
+    <!-- 3. Home Screen -->
+    <div id="screen-home" class="screen">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <span style="color: var(--subtext); font-size: 13px;" id="t-home-sub"></span>
+                <h3 style="margin: 5px 0;" id="t-home-hello"></h3>
+            </div>
+            <button onclick="handleLogout()" style="background: #ffebee; border: 1px solid #ffcdd2; color: #c62828; padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold;">Logout 🚪</button>
+        </div>
+
+        <div class="hero-card" style="margin-top: 20px;">
+            <span style="font-size: 11px; letter-spacing: 1px; color: var(--primary); font-weight: bold;">AI-POWERED • MULTILINGUAL</span>
+            <h2 id="t-hero-title" style="margin: 10px 0; color: var(--primary);"></h2>
+            <p id="t-hero-desc" style="color: var(--subtext); font-size: 13px;"></p>
+            
+            <input type="file" id="fileInput" class="file-input" accept=".pdf,image/*" onchange="processFile(this.files[0])">
+            <button class="btn-primary" onclick="document.getElementById('fileInput').click()">
+                ☁️ <span id="t-btn-upload">Upload Report</span>
+            </button>
+            <span style="font-size: 11px; color: var(--subtext); display: block; margin-top: 8px;">PDF • JPG • PNG</span>
+        </div>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <!-- Result Area -->
+        <div id="resultArea" style="display: none;">
+            <div class="score-box">
+                <span style="font-size: 12px; color: var(--subtext); text-transform: uppercase; font-weight: bold;" id="t-risk-title">Smart Health Risk Score</span>
+                <div>
+                    <span id="riskBadge" class="score-badge" style="background-color: #4caf50;">Normal Risk</span>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
+                <h3 id="t-result-header" style="margin: 0;">Patient Friendly Explanation</h3>
+                <button onclick="speakText()" style="background: none; border: none; font-size: 26px; cursor: pointer;" title="Listen">🔊</button>
+            </div>
+            
+            <div class="result-card">
+                <div id="summaryText"></div>
+            </div>
+
+            <details style="margin-top: 15px; background: #eee; padding: 10px; border-radius: 8px;">
+                <summary style="font-size: 13px; font-weight: bold; cursor: pointer;" id="t-extracted-header">Extracted Text</summary>
+                <p id="extractedText" style="font-size: 12px; color: #555; white-space: pre-wrap; margin-top: 10px;"></p>
+            </details>
+        </div>
+
+        <!-- Saved Reports History Section -->
+        <div style="margin-top: 25px; background: white; padding: 15px; border-radius: 12px; border: 1px solid #eee;">
+            <div id="historyContainer"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div id="bottomNav" class="bottom-nav" style="display: none;">
+        <div class="nav-item active" onclick="showScreen('screen-home')" id="t-nav-home">🏠 Home</div>
+        <div class="nav-item" onclick="document.getElementById('fileInput').click()" id="t-nav-upload">📤 Upload</div>
+        <div class="nav-item" onclick="showScreen('screen-lang')" id="t-nav-lang">🌐 Language</div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

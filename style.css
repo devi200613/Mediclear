@@ -1,0 +1,75 @@
+/* Base styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f5f7fa;
+    color: #333333;
+}
+
+/* Screen visibility management */
+.screen {
+    display: none;
+}
+
+.screen.active {
+    display: flex;
+}
+
+/* Intro Video Screen Layout - Exact Center Alignment */
+#screen-intro {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    width: 100vw;
+    background-color: #000000;
+    padding: 15px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+}
+
+.video-container {
+    width: 100%;
+    max-width: 260px; /* வீடியோவை இன்னும் சிறியதாக மாற்றியுள்ளது */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.video-container video {
+    width: 100%;
+    max-height: 40vh; /* மொபைல் திரைக்கு ஏற்ற சிறிய உயரம் */
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(255, 255, 255, 0.15);
+    outline: none;
+    object-fit: contain;
+}
+
+#btnSkipIntro {
+    width: auto;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #2196f3;
+    color: #ffffff;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+#btnSkipIntro:active {
+    transform: scale(0.96);
+    background-color: #1976d2;
+}
